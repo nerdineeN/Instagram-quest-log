@@ -585,7 +585,7 @@
   <div class="header">
     <div class="pixel-title">QUEST LOG<br><span>@melissa.does.things</span></div>
     <div class="header-sub">// INSTAGRAM ALGORITHM SCORE CARD v2.0 //</div>
-  <div id="drive-status" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:0.08em;">⟳ LOADING FROM DRIVE...</div>
+  <div id="drive-status" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent3);margin-top:8px;letter-spacing:0.08em;">💾 LOCAL STORAGE ACTIVE</div>
   </div>
 
   <!-- BOSS FIGHT BANNER -->
@@ -854,81 +854,21 @@
   let lastTier = '';
   let currentScore = 0;
   let postLog = [];
-  const DRIVE_FILE_ID = '1WepFhZHTFBI4mfABYor7wSJdgvXqcOUN';
-  let driveStatus = 'loading'; // loading | ok | error
-
-  // Status indicator
-  function setStatus(state, msg) {
-    driveStatus = state;
-    const el = document.getElementById('drive-status');
-    if (!el) return;
-    const colors = { loading: 'var(--muted)', ok: 'var(--accent3)', error: 'var(--accent2)' };
-    const icons = { loading: '⟳', ok: '☁ DRIVE SYNCED', error: '⚠ DRIVE ERROR' };
-    el.textContent = (msg || icons[state]);
-    el.style.color = colors[state];
+  // localStorage helpers
+  function saveLocal() {
+    try {
+      localStorage.setItem('melissaQuestLog', JSON.stringify(postLog));
+      const el = document.getElementById('drive-status');
+      if (el) { el.textContent = '💾 SAVED'; el.style.color = 'var(--accent3)'; }
+    } catch(e) { console.error('Save error:', e); }
   }
 
-  // Load from Drive on startup
-  async function loadFromDrive() {
-    setStatus('loading', '⟳ LOADING FROM DRIVE...');
+  function loadLocal() {
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          mcp_servers: [{ type: 'url', url: 'https://drivemcp.googleapis.com/mcp/v1', name: 'gdrive' }],
-          messages: [{ role: 'user', content: `Download the file with ID ${DRIVE_FILE_ID} and return ONLY the raw file content, nothing else. No explanation.` }]
-        })
-      });
-      const data = await res.json();
-      const toolResults = data.content.filter(b => b.type === 'mcp_tool_result');
-      let raw = '';
-      for (const block of toolResults) {
-        const txt = block.content?.[0]?.text || '';
-        if (txt.trim().startsWith('[')) { raw = txt.trim(); break; }
-      }
-      if (!raw) {
-        // Try text blocks
-        const textBlocks = data.content.filter(b => b.type === 'text');
-        for (const b of textBlocks) {
-          if (b.text.includes('[')) {
-            const match = b.text.match(/\[[\s\S]*\]/);
-            if (match) { raw = match[0]; break; }
-          }
-        }
-      }
+      const raw = localStorage.getItem('melissaQuestLog');
       postLog = raw ? JSON.parse(raw) : [];
-      setStatus('ok');
-    } catch(e) {
-      console.error('Drive load error:', e);
-      setStatus('error', '⚠ COULD NOT LOAD — USING LOCAL');
-    }
+    } catch(e) { postLog = []; }
     renderLog();
-  }
-
-  // Save to Drive
-  async function saveToDrive() {
-    setStatus('loading', '⟳ SAVING TO DRIVE...');
-    try {
-      const content = JSON.stringify(postLog, null, 2);
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          mcp_servers: [{ type: 'url', url: 'https://drivemcp.googleapis.com/mcp/v1', name: 'gdrive' }],
-          messages: [{ role: 'user', content: `Update the Google Drive file with ID ${DRIVE_FILE_ID}. Set its content to exactly this JSON and nothing else:\n${content}\n\nConfirm with "SAVED" when done.` }]
-        })
-      });
-      const data = await res.json();
-      setStatus('ok');
-    } catch(e) {
-      console.error('Drive save error:', e);
-      setStatus('error', '⚠ SAVE FAILED');
-    }
   }
 
   // IMAGE HANDLING
@@ -1156,7 +1096,7 @@ Return ONLY this JSON:
   }
 
   // Init
-  loadFromDrive();
+  loadLocal();
 
   function resetAll() {
     formatPts = 0; formatName = 'Reel'; lastTier = ''; currentScore = 0;
@@ -1252,7 +1192,7 @@ Return ONLY this JSON:
     const entry = { title, prescore, format, views, skip, watch, shares, saves, date: new Date().toLocaleDateString() };
     postLog.unshift(entry);
     renderLog();
-    saveToDrive();
+    saveLocal();
 
     // Clear post mortem fields
     ['pm-title','pm-prescore','pm-views','pm-skip','pm-watch','pm-shares','pm-saves'].forEach(id => document.getElementById(id).value = '');
@@ -1302,7 +1242,7 @@ Return ONLY this JSON:
   function deleteLog(i) {
     postLog.splice(i, 1);
     renderLog();
-    saveToDrive();
+    saveLocal();
   }
 
   // Init log on load

@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quest Log — @melissa.does.things</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #080c10;
+    --surface: #0d1520;
+    --surface2: #111d2e;
+    --border: #1a2d42;
+    --border-bright: #2a4a6a;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --gold: #ffd700;
+    --purple: #b044ff;
+    --text: #c8dff0;
+    --muted: #4a6a8a;
+    --hp-red: #ff3a3a;
+    --xp-green: #39ff14;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+    background-image: 
+      radial-gradient(ellipse at 20% 0%, rgba(0,212,255,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(176,68,255,0.04) 0%, transparent 60%);
+  }
+
+  /* SCANLINE EFFECT */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pixel-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(13px, 3.5vw, 18px);
+    color: var(--accent);
+    line-height: 1.6;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5), 0 0 40px rgba(0,212,255,0.2);
+    margin-bottom: 6px;
+  }
+
+  .pixel-title span { color: var(--gold); }
+
+  .header-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* CHARACTER STATS PANEL */
+  .stats-panel {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    padding: 16px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stats-panel::before {
+    content: 'CHARACTER STATS';
+    position: absolute;
+    top: 8px; right: 12px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-icon { font-size: 18px; display: block; margin-bottom: 3px; }
+
+  .stat-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+    display: block;
+  }
+
+  .stat-bar-track {
+    height: 5px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+    margin-bottom: 3px;
+  }
+
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 1px;
+    transition: width 0.6s ease;
+  }
+
+  .stat-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+  }
+
+  /* QUEST SCORE (STICKY) */
+  .quest-score-wrap {
+    position: sticky;
+    top: 12px;
+    z-index: 50;
+    margin-bottom: 20px;
+  }
+
+  .quest-score {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.1);
+  }
+
+  .qs-left { text-align: center; min-width: 70px; }
+
+  .qs-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .qs-number {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 28px;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 16px rgba(0,212,255,0.6);
+    transition: color 0.3s, text-shadow 0.3s;
+  }
+
+  .qs-right { flex: 1; }
+
+  .qs-bar-track {
+    height: 8px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .qs-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+
+  .qs-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: white;
+    opacity: 0.6;
+    filter: blur(1px);
+  }
+
+  /* Tier markers on bar */
+  .qs-bar-markers {
+    position: relative;
+    height: 6px;
+    margin-bottom: 6px;
+  }
+
+  .qs-marker {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 6px;
+    background: var(--border-bright);
+  }
+
+  .qs-verdict {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--accent3);
+    transition: color 0.3s;
+  }
+
+  /* FORMAT SELECT */
+  .section-header {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .format-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .format-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .format-card:hover { border-color: var(--border-bright); }
+
+  .format-card.selected {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.06);
+  }
+
+  .format-card.selected::before {
+    content: '▶';
+    position: absolute;
+    top: 8px; right: 8px;
+    font-size: 8px;
+    color: var(--accent);
+  }
+
+  .format-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--text);
+    margin-bottom: 5px;
+  }
+
+  .format-pts {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+  }
+
+  .format-desc {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+
+  /* QUEST CHECKS */
+  .quest-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .quest-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 0.15s;
+  }
+
+  .quest-item:hover { border-color: var(--border-bright); }
+
+  .quest-item.checked {
+    border-color: var(--accent3);
+    background: rgba(57,255,20,0.04);
+  }
+
+  .quest-item.checked::before { background: var(--accent3); }
+
+  .quest-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--border-bright);
+    border-radius: 1px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    transition: all 0.15s;
+    margin-top: 1px;
+    color: transparent;
+  }
+
+  .quest-item.checked .quest-checkbox {
+    background: var(--accent3);
+    border-color: var(--accent3);
+    color: #000;
+  }
+
+  .quest-body { flex: 1; }
+
+  .quest-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 3px;
+  }
+
+  .quest-hint {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  .quest-xp {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--accent3);
+    white-space: nowrap;
+    padding-top: 3px;
+    text-shadow: 0 0 8px rgba(57,255,20,0.4);
+  }
+
+  /* TIER CARDS */
+  .tier-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .tier-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tier-range {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .tier-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  .tier-desc {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  /* MELISSA STAT SIDEBAR */
+  .melissa-stats {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px;
+    margin-bottom: 20px;
+  }
+
+  .melissa-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--gold);
+    margin-bottom: 12px;
+    text-shadow: 0 0 10px rgba(255,215,0,0.4);
+  }
+
+  .mel-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .mel-stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mel-stat-bar {
+    flex: 1;
+    margin: 0 10px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .mel-stat-bar-fill {
+    height: 100%;
+    border-radius: 1px;
+  }
+
+  .mel-stat-val {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    min-width: 24px;
+    text-align: right;
+  }
+
+  /* BOSS FIGHT BANNER */
+  .boss-banner {
+    background: linear-gradient(135deg, rgba(255,107,53,0.1) 0%, rgba(255,215,0,0.05) 100%);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 2px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .boss-icon { font-size: 28px; flex-shrink: 0; }
+
+  .boss-text { flex: 1; }
+
+  .boss-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--accent2);
+    margin-bottom: 5px;
+    text-shadow: 0 0 10px rgba(255,107,53,0.5);
+  }
+
+  .boss-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .boss-hp {
+    text-align: right;
+  }
+
+  .boss-hp-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .boss-hp-val {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: var(--accent2);
+  }
+
+  /* RESET */
+  .reset-btn {
+    display: block;
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    text-shadow: 0 0 8px rgba(255,107,53,0.5);
+  }
+
+  /* LEVEL UP FLASH */
+  @keyframes levelUp {
+    0% { opacity: 0; transform: scale(0.8); }
+    20% { opacity: 1; transform: scale(1.05); }
+    80% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1); }
+  }
+
+  .level-up-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 20px;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(255,215,0,0.8);
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+</style>
+</head>
+<body>
+<div class="level-up-toast" id="toast">⚔️<br>POST NOW!<br>⚔️</div>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="pixel-title">QUEST LOG<br><span>@melissa.does.things</span></div>
+    <div class="header-sub">// INSTAGRAM ALGORITHM SCORE CARD v2.0 //</div>
+  <div id="drive-status" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:0.08em;">⟳ LOADING FROM DRIVE...</div>
+  </div>
+
+  <!-- BOSS FIGHT BANNER -->
+  <div class="boss-banner">
+    <div class="boss-icon">🏁</div>
+    <div class="boss-text">
+      <div class="boss-title">⚔ BOSS FIGHT INCOMING</div>
+      <div class="boss-sub">La Crema Sprint Tri · ~28 days · Las Vegas</div>
+    </div>
+    <div class="boss-hp">
+      <div class="boss-hp-label">DAYS LEFT</div>
+      <div class="boss-hp-val" id="daysLeft">28</div>
+    </div>
+  </div>
+
+  <!-- CHARACTER PANEL -->
+  <div class="melissa-stats">
+    <div class="melissa-name">⚔ MELISSA // MULTI-SPORT RPG BUILD</div>
+    <div class="mel-stat-row">
+      <div class="mel-stat-label">🏊 ENDURANCE</div>
+      <div class="mel-stat-bar"><div class="mel-stat-bar-fill" style="width:72%;background:#00d4ff"></div></div>
+      <div class="mel-stat-val" style="color:#00d4ff">72</div>
+    </div>
+    <div class="mel-stat-row">
+      <div class="mel-stat-label">🚴 POWER</div>
+      <div class="mel-stat-bar"><div class="mel-stat-bar-fill" style="width:68%;background:#b044ff"></div></div>
+      <div class="mel-stat-val" style="color:#b044ff">68</div>
+    </div>
+    <div class="mel-stat-row">
+      <div class="mel-stat-label">🏃 SPEED</div>
+      <div class="mel-stat-bar"><div class="mel-stat-bar-fill" style="width:65%;background:#39ff14"></div></div>
+      <div class="mel-stat-val" style="color:#39ff14">65</div>
+    </div>
+    <div class="mel-stat-row">
+      <div class="mel-stat-label">⛷️ AGILITY</div>
+      <div class="mel-stat-bar"><div class="mel-stat-bar-fill" style="width:80%;background:#ffd700"></div></div>
+      <div class="mel-stat-val" style="color:#ffd700">80</div>
+    </div>
+    <div class="mel-stat-row">
+      <div class="mel-stat-label">💪 STRENGTH</div>
+      <div class="mel-stat-bar"><div class="mel-stat-bar-fill" style="width:60%;background:#ff6b35"></div></div>
+      <div class="mel-stat-val" style="color:#ff6b35">60</div>
+    </div>
+  </div>
+
+  <!-- BLIND SCORE MODE -->
+  <div class="section-header">🎮 BLIND SCORE — DESCRIBE YOUR POST</div>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;">Answer honestly. AI scores it cold — no bias, no checkbox fudging.</div>
+
+  <div class="melissa-stats" style="margin-bottom:10px;">
+    <div style="margin-bottom:14px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;">FORMAT</div>
+      <div class="format-grid">
+        <div class="format-card" data-pts="15" data-fmt="Reel" onclick="selectFormat(this)">
+          <div class="format-name">🎬 REEL</div>
+          <div class="format-desc">Highest reach. New audience.</div>
+        </div>
+        <div class="format-card" data-pts="10" data-fmt="Carousel" onclick="selectFormat(this)">
+          <div class="format-name">📖 CAROUSEL</div>
+          <div class="format-desc">Best save rate. Tips & data.</div>
+        </div>
+        <div class="format-card" data-pts="5" data-fmt="Static" onclick="selectFormat(this)">
+          <div class="format-name">📸 STATIC</div>
+          <div class="format-desc">Low reach. Community signal.</div>
+        </div>
+        <div class="format-card" data-pts="0" data-fmt="Story" onclick="selectFormat(this)">
+          <div class="format-name">💬 STORY</div>
+          <div class="format-desc">No new reach. Retention only.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">WHAT IS THE FIRST FRAME / OPENING VISUAL?</div>
+      <textarea id="bs-frame" placeholder="e.g. Garmin watch showing 99°F on a hot Las Vegas sidewalk" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px;border-radius:2px;outline:none;resize:vertical;min-height:60px;"></textarea>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">WHAT IS YOUR HOOK? (first text on screen or first caption line)</div>
+      <textarea id="bs-hook" placeholder="e.g. Running in 99°F because apparently I hate myself" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px;border-radius:2px;outline:none;resize:vertical;min-height:60px;"></textarea>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">PASTE YOUR FULL CAPTION</div>
+      <textarea id="bs-caption" placeholder="Paste your caption here..." style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px;border-radius:2px;outline:none;resize:vertical;min-height:80px;"></textarea>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">DESCRIBE THE REST OF THE CONTENT</div>
+      <textarea id="bs-content" placeholder="e.g. Shadow selfie on pavement, Garmin data overlay, clip of me fanning myself at end" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px;border-radius:2px;outline:none;resize:vertical;min-height:80px;"></textarea>
+    </div>
+
+    <button id="blind-score-btn" onclick="runBlindScore()" style="width:100%;padding:14px;background:rgba(57,255,20,0.08);border:1px solid var(--accent3);color:var(--accent3);font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:0.1em;cursor:pointer;border-radius:2px;">⚡ GET MY SCORE</button>
+    <div id="bs-status" style="display:none;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);text-align:center;padding:12px;">⟳ Scoring your post cold...</div>
+  </div>
+
+  <!-- SCORE DISPLAY -->
+  <div class="quest-score-wrap">
+    <div class="quest-score">
+      <div class="qs-left">
+        <div class="qs-label">ALGO XP</div>
+        <div class="qs-number" id="scoreNum">?</div>
+      </div>
+      <div class="qs-right">
+        <div class="qs-bar-track">
+          <div class="qs-bar-fill" id="scoreBar" style="width:0%"></div>
+        </div>
+        <div class="qs-verdict" id="scoreVerdict">// DESCRIBE YOUR POST TO GET SCORED //</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI BREAKDOWN -->
+  <div id="score-breakdown" style="display:none;" class="melissa-stats">
+    <div class="melissa-name" style="margin-bottom:12px;">📋 SCORE BREAKDOWN</div>
+    <div id="breakdown-content" style="font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.8;color:var(--text);"></div>
+    <div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:2px;border-left:3px solid var(--accent2);">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:6px;">HOW TO LEVEL UP THIS POST</div>
+      <div id="improvement-tips" style="font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.7;color:var(--text);"></div>
+    </div>
+  </div>
+
+  <!-- TIER GUIDE -->
+  <div class="section-header">LOOT TIERS</div>
+  <div class="tier-grid">
+    <div class="tier-card">
+      <div class="tier-range">80–100 XP</div>
+      <div class="tier-name" style="color:var(--gold)">⚔ POST NOW<br>LEGENDARY</div>
+      <div class="tier-desc">Max reach potential. New audience unlock likely. Post immediately.</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-range">55–79 XP</div>
+      <div class="tier-name" style="color:var(--accent)">🛡 QUEUE IT<br>RARE</div>
+      <div class="tier-desc">Solid content. Builds trust score and retention. Worth posting.</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-range">30–54 XP</div>
+      <div class="tier-name" style="color:var(--accent2)">🔧 RETHINK<br>UNCOMMON</div>
+      <div class="tier-desc">Needs a better hook or caption. Don't post as-is on a new account.</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-range">0–29 XP</div>
+      <div class="tier-name" style="color:var(--muted)">💀 STORY ONLY<br>COMMON</div>
+      <div class="tier-desc">Save for Stories. Low-signal posts hurt trust score early game.</div>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">↺ ABANDON QUEST / RESET</button>
+
+  <!-- POST MORTEM -->
+  <div class="section-header" style="margin-top:36px">📊 POST MORTEM — DROP YOUR INSIGHTS SCREENSHOT</div>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;">Screenshot your Instagram insights 24–48hrs after posting. Drop it below — AI reads it automatically.</div>
+
+  <div class="melissa-stats" style="margin-bottom:12px;">
+    <div class="melissa-name" style="margin-bottom:14px;">⚔ POST DETAILS</div>
+    <div style="margin-bottom:10px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">POST TITLE / HOOK</div>
+      <input id="pm-title" type="text" placeholder="e.g. 99°F easy run with Freedom units" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px;border-radius:2px;outline:none;" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">PRE-POST SCORE</div>
+        <input id="pm-prescore" type="number" placeholder="e.g. 83" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--accent);font-family:'Press Start 2P',monospace;font-size:14px;padding:10px;border-radius:2px;outline:none;" />
+      </div>
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">FORMAT</div>
+        <select id="pm-format" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:11px;padding:10px;border-radius:2px;outline:none;">
+          <option>Reel</option><option>Carousel</option><option>Static</option><option>Story</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREENSHOT DROP ZONE -->
+  <div class="melissa-stats" style="margin-bottom:12px;">
+    <div class="melissa-name" style="margin-bottom:14px;">📸 INSIGHTS SCREENSHOT</div>
+
+    <div id="drop-zone" onclick="document.getElementById('img-upload').click()" style="border:2px dashed var(--border-bright);border-radius:2px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg);"
+      ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(0,212,255,0.04)'"
+      ondragleave="this.style.borderColor='var(--border-bright)';this.style.background='var(--bg)'"
+      ondrop="handleDrop(event)">
+      <div style="font-size:32px;margin-bottom:10px;">📲</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent);margin-bottom:6px;">TAP TO UPLOAD</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);">or drag & drop your insights screenshot</div>
+      <input id="img-upload" type="file" accept="image/*" style="display:none" onchange="handleFile(this.files[0])" />
+    </div>
+
+    <!-- Preview -->
+    <div id="img-preview-wrap" style="display:none;margin-top:12px;">
+      <img id="img-preview" style="width:100%;border-radius:2px;border:1px solid var(--border);max-height:300px;object-fit:contain;" />
+      <button onclick="clearImage()" style="margin-top:8px;width:100%;padding:8px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;border-radius:2px;">✕ CLEAR IMAGE</button>
+    </div>
+
+    <!-- Analyse button -->
+    <button id="analyse-btn" onclick="analyseScreenshot()" style="display:none;width:100%;margin-top:12px;padding:14px;background:rgba(57,255,20,0.08);border:1px solid var(--accent3);color:var(--accent3);font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:0.1em;cursor:pointer;border-radius:2px;transition:all 0.15s;">
+      ⚡ ANALYSE SCREENSHOT
+    </button>
+
+    <!-- AI status -->
+    <div id="ai-status" style="display:none;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);text-align:center;padding:12px;">
+      ⟳ Reading your insights...
+    </div>
+  </div>
+
+  <!-- EXTRACTED METRICS (read-only, filled by AI) -->
+  <div class="melissa-stats" id="metrics-panel" style="margin-bottom:12px;display:none;">
+    <div class="melissa-name" style="margin-bottom:14px;">📈 EXTRACTED METRICS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">VIEWS</div>
+        <input id="pm-views" type="number" placeholder="—" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;padding:10px;border-radius:2px;outline:none;" oninput="calcMetrics()" />
+      </div>
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">SKIP RATE %</div>
+        <input id="pm-skip" type="number" placeholder="—" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;padding:10px;border-radius:2px;outline:none;" oninput="calcMetrics()" />
+      </div>
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">AVG WATCH TIME (s)</div>
+        <input id="pm-watch" type="number" placeholder="—" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;padding:10px;border-radius:2px;outline:none;" oninput="calcMetrics()" />
+      </div>
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">SHARES</div>
+        <input id="pm-shares" type="number" placeholder="—" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;padding:10px;border-radius:2px;outline:none;" oninput="calcMetrics()" />
+      </div>
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">SAVES</div>
+        <input id="pm-saves" type="number" placeholder="—" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;padding:10px;border-radius:2px;outline:none;" oninput="calcMetrics()" />
+      </div>
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;">LIKES</div>
+        <input id="pm-likes" type="number" placeholder="—" style="width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;padding:10px;border-radius:2px;outline:none;" oninput="calcMetrics()" />
+      </div>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-top:10px;">✏ Tap any field to correct AI readings before logging.</div>
+  </div>
+
+  <!-- LIVE FEEDBACK -->
+  <div class="melissa-stats" id="pm-feedback" style="margin-bottom:12px;display:none;">
+    <div class="melissa-name" style="margin-bottom:12px;">🎮 PERFORMANCE ANALYSIS</div>
+    <div id="pm-skip-feedback" style="margin-bottom:10px;padding:10px;background:var(--bg);border-radius:2px;border-left:3px solid var(--muted);">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:4px;">SKIP RATE</div>
+      <div id="pm-skip-grade" style="font-family:'Share Tech Mono',monospace;font-size:12px;"></div>
+    </div>
+    <div id="pm-watch-feedback" style="margin-bottom:10px;padding:10px;background:var(--bg);border-radius:2px;border-left:3px solid var(--muted);">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:4px;">WATCH TIME</div>
+      <div id="pm-watch-grade" style="font-family:'Share Tech Mono',monospace;font-size:12px;"></div>
+    </div>
+    <div style="padding:10px;background:var(--bg);border-radius:2px;border-left:3px solid var(--muted);">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:4px;">WHAT TO FIX NEXT TIME</div>
+      <div id="pm-fix" style="font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.6;color:var(--text);"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="section-header" style="margin-top:24px;">📋 QUEST LOG — POSTED HISTORY</div>
+  <button onclick="logPost()" style="width:100%;padding:12px;background:rgba(0,212,255,0.08);border:1px solid var(--accent);color:var(--accent);font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:0.1em;cursor:pointer;border-radius:2px;margin-bottom:12px;transition:all 0.15s;" onmouseover="this.style.background='rgba(0,212,255,0.15)'" onmouseout="this.style.background='rgba(0,212,255,0.08)'">+ LOG THIS POST</button>
+  <div id="post-log"></div>
+
+  <button class="reset-btn" onclick="resetAll()">↺ ABANDON QUEST / RESET</button>
+
+</div>
+
+<script>
+  let formatPts = 0;
+  let formatName = 'Reel';
+  let lastTier = '';
+  let currentScore = 0;
+  let postLog = [];
+  const DRIVE_FILE_ID = '1WepFhZHTFBI4mfABYor7wSJdgvXqcOUN';
+  let driveStatus = 'loading'; // loading | ok | error
+
+  // Status indicator
+  function setStatus(state, msg) {
+    driveStatus = state;
+    const el = document.getElementById('drive-status');
+    if (!el) return;
+    const colors = { loading: 'var(--muted)', ok: 'var(--accent3)', error: 'var(--accent2)' };
+    const icons = { loading: '⟳', ok: '☁ DRIVE SYNCED', error: '⚠ DRIVE ERROR' };
+    el.textContent = (msg || icons[state]);
+    el.style.color = colors[state];
+  }
+
+  // Load from Drive on startup
+  async function loadFromDrive() {
+    setStatus('loading', '⟳ LOADING FROM DRIVE...');
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          mcp_servers: [{ type: 'url', url: 'https://drivemcp.googleapis.com/mcp/v1', name: 'gdrive' }],
+          messages: [{ role: 'user', content: `Download the file with ID ${DRIVE_FILE_ID} and return ONLY the raw file content, nothing else. No explanation.` }]
+        })
+      });
+      const data = await res.json();
+      const toolResults = data.content.filter(b => b.type === 'mcp_tool_result');
+      let raw = '';
+      for (const block of toolResults) {
+        const txt = block.content?.[0]?.text || '';
+        if (txt.trim().startsWith('[')) { raw = txt.trim(); break; }
+      }
+      if (!raw) {
+        // Try text blocks
+        const textBlocks = data.content.filter(b => b.type === 'text');
+        for (const b of textBlocks) {
+          if (b.text.includes('[')) {
+            const match = b.text.match(/\[[\s\S]*\]/);
+            if (match) { raw = match[0]; break; }
+          }
+        }
+      }
+      postLog = raw ? JSON.parse(raw) : [];
+      setStatus('ok');
+    } catch(e) {
+      console.error('Drive load error:', e);
+      setStatus('error', '⚠ COULD NOT LOAD — USING LOCAL');
+    }
+    renderLog();
+  }
+
+  // Save to Drive
+  async function saveToDrive() {
+    setStatus('loading', '⟳ SAVING TO DRIVE...');
+    try {
+      const content = JSON.stringify(postLog, null, 2);
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          mcp_servers: [{ type: 'url', url: 'https://drivemcp.googleapis.com/mcp/v1', name: 'gdrive' }],
+          messages: [{ role: 'user', content: `Update the Google Drive file with ID ${DRIVE_FILE_ID}. Set its content to exactly this JSON and nothing else:\n${content}\n\nConfirm with "SAVED" when done.` }]
+        })
+      });
+      const data = await res.json();
+      setStatus('ok');
+    } catch(e) {
+      console.error('Drive save error:', e);
+      setStatus('error', '⚠ SAVE FAILED');
+    }
+  }
+
+  // IMAGE HANDLING
+  let currentImageBase64 = null;
+  let currentImageMime = 'image/jpeg';
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').style.borderColor = 'var(--border-bright)';
+    document.getElementById('drop-zone').style.background = 'var(--bg)';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) handleFile(file);
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    currentImageMime = file.type || 'image/jpeg';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      currentImageBase64 = dataUrl.split(',')[1];
+      document.getElementById('img-preview').src = dataUrl;
+      document.getElementById('img-preview-wrap').style.display = 'block';
+      document.getElementById('analyse-btn').style.display = 'block';
+      document.getElementById('drop-zone').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearImage() {
+    currentImageBase64 = null;
+    document.getElementById('img-preview-wrap').style.display = 'none';
+    document.getElementById('analyse-btn').style.display = 'none';
+    document.getElementById('drop-zone').style.display = 'block';
+    document.getElementById('ai-status').style.display = 'none';
+    document.getElementById('metrics-panel').style.display = 'none';
+    document.getElementById('pm-feedback').style.display = 'none';
+    document.getElementById('img-upload').value = '';
+  }
+
+  async function analyseScreenshot() {
+    if (!currentImageBase64) return;
+    document.getElementById('ai-status').style.display = 'block';
+    document.getElementById('ai-status').textContent = '⟳ AI is reading your insights...';
+    document.getElementById('analyse-btn').style.display = 'none';
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: { type: 'base64', media_type: currentImageMime, data: currentImageBase64 }
+              },
+              {
+                type: 'text',
+                text: `This is an Instagram Reel insights screenshot. Extract these exact metrics and return ONLY a JSON object, no other text:
+{
+  "views": <number or null>,
+  "skip_rate": <number percentage e.g. 45.6 or null>,
+  "watch_time": <average watch time in seconds as number or null>,
+  "shares": <number or null>,
+  "saves": <number or null>,
+  "likes": <number or null>
+}
+If a metric is not visible in the screenshot, use null. Return only the JSON.`
+              }
+            ]
+          }]
+        })
+      });
+
+      const data = await res.json();
+      const textBlock = data.content.find(b => b.type === 'text');
+      if (!textBlock) throw new Error('No response');
+
+      const clean = textBlock.text.replace(/```json|```/g, '').trim();
+      const metrics = JSON.parse(clean);
+
+      // Fill in the fields
+      if (metrics.views !== null) document.getElementById('pm-views').value = metrics.views;
+      if (metrics.skip_rate !== null) document.getElementById('pm-skip').value = metrics.skip_rate;
+      if (metrics.watch_time !== null) document.getElementById('pm-watch').value = metrics.watch_time;
+      if (metrics.shares !== null) document.getElementById('pm-shares').value = metrics.shares;
+      if (metrics.saves !== null) document.getElementById('pm-saves').value = metrics.saves;
+      if (metrics.likes !== null) document.getElementById('pm-likes').value = metrics.likes;
+
+      document.getElementById('metrics-panel').style.display = 'block';
+      document.getElementById('ai-status').textContent = '✅ Metrics extracted! Tap any field to correct.';
+      document.getElementById('ai-status').style.color = 'var(--accent3)';
+      calcMetrics();
+
+    } catch(e) {
+      console.error('Analysis error:', e);
+      document.getElementById('ai-status').textContent = '⚠ Could not read screenshot — please fill metrics manually.';
+      document.getElementById('ai-status').style.color = 'var(--accent2)';
+      document.getElementById('metrics-panel').style.display = 'block';
+      document.getElementById('analyse-btn').style.display = 'block';
+    }
+  }
+
+
+
+  function selectFormat(el) {
+    document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    formatPts = parseInt(el.dataset.pts);
+    formatName = el.dataset.fmt || 'Reel';
+  }
+
+  async function runBlindScore() {
+    const frame = document.getElementById('bs-frame').value.trim();
+    const hook = document.getElementById('bs-hook').value.trim();
+    const caption = document.getElementById('bs-caption').value.trim();
+    const contentDesc = document.getElementById('bs-content').value.trim();
+
+    if (!hook && !caption) { alert('At least add your hook or caption!'); return; }
+
+    document.getElementById('bs-status').style.display = 'block';
+    document.getElementById('blind-score-btn').style.display = 'none';
+    document.getElementById('score-breakdown').style.display = 'none';
+
+    const prompt = `You are scoring an Instagram post for @melissa.does.things — a multi-sport athlete (triathlon, skiing, cycling) in Las Vegas who frames training as an RPG character build. Brand message: "How I make training fun." Stats: swim=Endurance, bike=Power, run=Speed, ski=Agility. Garmin=stats screen, recovery=HP, XP=training load. La Crema Sprint Tri = first boss fight ~28 days away.
+
+Score COLD and HONESTLY (max 100pts, format bonus already included):
+
+SHAREABILITY (max 42):
+- DM-worthy to a training partner (0-20)
+- Hook strength first 2s / first caption line (0-12)
+- Emotional resonance — inspired/amused/seen (0-10)
+
+SAVE & RETENTION (max 20):
+- Saveable data or useful info (0-12)
+- Invites comment or debate (0-8)
+
+CONTENT QUALITY (max 18):
+- Original footage (0-8)
+- Clear niche signal (0-5)
+- Caption first line strongest (0-5)
+
+FUN FACTOR (max 40):
+- Shows training being FUN not just hard (0-15)
+- Outcome-first hook not activity-first (0-10)
+- RPG framing — XP/HP/stats/boss (0-8)
+- Non-athlete / gamer crossover appeal (0-7)
+
+POST:
+Format: ${formatName} (+${formatPts}pts already included in total)
+First frame: ${frame || 'not described'}
+Hook: ${hook || 'not provided'}
+Caption: ${caption || 'not provided'}
+Content: ${contentDesc || 'not described'}
+
+Return ONLY this JSON:
+{"total":N,"breakdown":[{"criterion":"label","score":N,"max":N,"note":"brief"}],"tips":["tip1","tip2","tip3"]}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+      });
+      const data = await res.json();
+      const text = data.content.find(b => b.type === 'text')?.text || '';
+      const result = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+      currentScore = Math.min(result.total, 100);
+      displayScore(currentScore);
+
+      const breakdownHtml = result.breakdown.map(b => {
+        const pct = b.score / b.max;
+        const color = pct >= 0.8 ? 'var(--accent3)' : pct >= 0.5 ? 'var(--gold)' : pct >= 0.3 ? 'var(--accent2)' : 'var(--hp-red)';
+        return `<div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px;"><span style="color:var(--muted);flex:1;">${b.criterion}</span><span style="color:${color};font-weight:600;">${b.score}/${b.max}</span></div><div style="font-size:10px;color:var(--muted);margin-bottom:10px;padding-left:4px;">→ ${b.note}</div>`;
+      }).join('');
+
+      document.getElementById('breakdown-content').innerHTML = breakdownHtml;
+      document.getElementById('improvement-tips').innerHTML = result.tips.map(t => `▶ ${t}`).join('<br><br>');
+      document.getElementById('score-breakdown').style.display = 'block';
+      document.getElementById('bs-status').style.display = 'none';
+      document.getElementById('blind-score-btn').style.display = 'block';
+      document.getElementById('blind-score-btn').textContent = '↺ RESCORE';
+    } catch(e) {
+      document.getElementById('bs-status').textContent = '⚠ Scoring failed. Try again.';
+      document.getElementById('bs-status').style.color = 'var(--accent2)';
+      document.getElementById('blind-score-btn').style.display = 'block';
+    }
+  }
+
+  function displayScore(pts) {
+    const num = document.getElementById('scoreNum');
+    const bar = document.getElementById('scoreBar');
+    const verdict = document.getElementById('scoreVerdict');
+    num.textContent = pts;
+    bar.style.width = pts + '%';
+    let tier = '';
+    if (pts >= 80) {
+      tier = 'legendary'; verdict.textContent = '⚔ LEGENDARY — POST NOW. MAX REACH UNLOCKED';
+      verdict.style.color = 'var(--gold)'; num.style.color = 'var(--gold)';
+      num.style.textShadow = '0 0 20px rgba(255,215,0,0.8)'; bar.style.background = 'var(--gold)';
+    } else if (pts >= 55) {
+      tier = 'rare'; verdict.textContent = '🛡 RARE — QUEUE IT. TRUST SCORE +';
+      verdict.style.color = 'var(--accent)'; num.style.color = 'var(--accent)';
+      num.style.textShadow = '0 0 16px rgba(0,212,255,0.6)'; bar.style.background = 'var(--accent)';
+    } else if (pts >= 30) {
+      tier = 'uncommon'; verdict.textContent = '🔧 UNCOMMON — RETHINK HOOK BEFORE POSTING';
+      verdict.style.color = 'var(--accent2)'; num.style.color = 'var(--accent2)';
+      num.style.textShadow = '0 0 16px rgba(255,107,53,0.5)'; bar.style.background = 'var(--accent2)';
+    } else {
+      tier = 'common'; verdict.textContent = '💀 COMMON — STORY ONLY. SAVE THIS ONE.';
+      verdict.style.color = 'var(--muted)'; num.style.color = 'var(--muted)';
+      num.style.textShadow = 'none'; bar.style.background = 'var(--muted)';
+    }
+    if (tier === 'legendary' && lastTier !== 'legendary') {
+      const toast = document.getElementById('toast');
+      toast.style.animation = 'none'; toast.offsetHeight;
+      toast.style.animation = 'levelUp 1.8s ease forwards';
+    }
+    lastTier = tier;
+  }
+
+  // Init
+  loadFromDrive();
+
+  function resetAll() {
+    formatPts = 0; formatName = 'Reel'; lastTier = ''; currentScore = 0;
+    document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+    ['bs-frame','bs-hook','bs-caption','bs-content'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    document.getElementById('scoreNum').textContent = '?';
+    document.getElementById('scoreBar').style.width = '0%';
+    document.getElementById('scoreBar').style.background = 'var(--accent)';
+    document.getElementById('scoreNum').style.color = 'var(--accent)';
+    document.getElementById('scoreNum').style.textShadow = '0 0 16px rgba(0,212,255,0.6)';
+    document.getElementById('scoreVerdict').textContent = '// DESCRIBE YOUR POST TO GET SCORED //';
+    document.getElementById('scoreVerdict').style.color = 'var(--accent3)';
+    document.getElementById('score-breakdown').style.display = 'none';
+    document.getElementById('bs-status').style.display = 'none';
+    const btn = document.getElementById('blind-score-btn');
+    if(btn) { btn.style.display = 'block'; btn.textContent = '⚡ GET MY SCORE'; }
+  }
+
+  function calcMetrics() {
+    const skip = parseFloat(document.getElementById('pm-skip').value);
+    const watch = parseFloat(document.getElementById('pm-watch').value);
+    const shares = parseFloat(document.getElementById('pm-shares').value) || 0;
+    const saves = parseFloat(document.getElementById('pm-saves').value) || 0;
+
+    if (!skip && !watch) return;
+    document.getElementById('pm-feedback').style.display = 'block';
+
+    // Skip rate analysis
+    const skipEl = document.getElementById('pm-skip-grade');
+    const skipFeedback = document.getElementById('pm-skip-feedback');
+    if (skip < 35) {
+      skipEl.textContent = '🟢 ' + skip + '% — EXCELLENT. Hook is landing. Keep this formula.';
+      skipEl.style.color = 'var(--accent3)';
+      skipFeedback.style.borderLeftColor = 'var(--accent3)';
+    } else if (skip < 50) {
+      skipEl.textContent = '🟡 ' + skip + '% — DECENT. First second could be stronger.';
+      skipEl.style.color = 'var(--gold)';
+      skipFeedback.style.borderLeftColor = 'var(--gold)';
+    } else if (skip < 65) {
+      skipEl.textContent = '🟠 ' + skip + '% — WEAK HOOK. Lead with the result, not the activity.';
+      skipEl.style.color = 'var(--accent2)';
+      skipFeedback.style.borderLeftColor = 'var(--accent2)';
+    } else {
+      skipEl.textContent = '🔴 ' + skip + '% — CRITICAL. Open frame needs to be your most interesting visual.';
+      skipEl.style.color = 'var(--hp-red)';
+      skipFeedback.style.borderLeftColor = 'var(--hp-red)';
+    }
+
+    // Watch time analysis
+    const watchEl = document.getElementById('pm-watch-grade');
+    const watchFeedback = document.getElementById('pm-watch-feedback');
+    if (watch >= 7) {
+      watchEl.textContent = '🟢 ' + watch + 's — GREAT. People are watching through. Algorithm loves this.';
+      watchEl.style.color = 'var(--accent3)';
+      watchFeedback.style.borderLeftColor = 'var(--accent3)';
+    } else if (watch >= 5) {
+      watchEl.textContent = '🟡 ' + watch + 's — SOLID. Add a punchline at the end to boost completion.';
+      watchEl.style.color = 'var(--gold)';
+      watchFeedback.style.borderLeftColor = 'var(--gold)';
+    } else if (watch >= 3) {
+      watchEl.textContent = '🟠 ' + watch + 's — LOW. Content after second 3 isn\'t earning its keep.';
+      watchEl.style.color = 'var(--accent2)';
+      watchFeedback.style.borderLeftColor = 'var(--accent2)';
+    } else {
+      watchEl.textContent = '🔴 ' + watch + 's — CRITICAL. Almost nobody getting past the hook.';
+      watchEl.style.color = 'var(--hp-red)';
+      watchFeedback.style.borderLeftColor = 'var(--hp-red)';
+    }
+
+    // What to fix
+    const fixes = [];
+    if (skip >= 50) fixes.push('▶ Open with your most visually striking frame — stat screen, suffer face, or unexpected moment');
+    if (skip >= 65) fixes.push('▶ First word on screen should be the RESULT, not the activity');
+    if (watch < 5) fixes.push('▶ Add a payoff at the end — fanning clip, funny text card, stat reveal');
+    if (watch < 3) fixes.push('▶ Cut the slow intro. Start mid-action.');
+    if (shares === 0) fixes.push('▶ Ask yourself: would a training partner DM this? If not, add the fun/relatable angle');
+    if (saves === 0) fixes.push('▶ No saves = no useful info. Try adding one concrete stat, tip, or list next time');
+    if (fixes.length === 0) fixes.push('✅ Strong performance! Double down on this formula for next post.');
+
+    document.getElementById('pm-fix').innerHTML = fixes.join('<br><br>');
+  }
+
+  function logPost() {
+    const title = document.getElementById('pm-title').value || 'Untitled Post';
+    const prescore = document.getElementById('pm-prescore').value || currentScore || '?';
+    const format = document.getElementById('pm-format').value;
+    const views = document.getElementById('pm-views').value || '0';
+    const skip = document.getElementById('pm-skip').value || '?';
+    const watch = document.getElementById('pm-watch').value || '?';
+    const shares = document.getElementById('pm-shares').value || '0';
+    const saves = document.getElementById('pm-saves').value || '0';
+
+    const entry = { title, prescore, format, views, skip, watch, shares, saves, date: new Date().toLocaleDateString() };
+    postLog.unshift(entry);
+    renderLog();
+    saveToDrive();
+
+    // Clear post mortem fields
+    ['pm-title','pm-prescore','pm-views','pm-skip','pm-watch','pm-shares','pm-saves'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('pm-feedback').style.display = 'none';
+  }
+
+  function renderLog() {
+    const el = document.getElementById('post-log');
+    if (postLog.length === 0) { el.innerHTML = '<div style="font-family:Share Tech Mono,monospace;font-size:11px;color:var(--muted);text-align:center;padding:20px;">No posts logged yet.</div>'; return; }
+
+    el.innerHTML = postLog.map((p, i) => {
+      const skipColor = !p.skip || p.skip === '?' ? 'var(--muted)' : p.skip < 35 ? 'var(--accent3)' : p.skip < 50 ? 'var(--gold)' : p.skip < 65 ? 'var(--accent2)' : 'var(--hp-red)';
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:14px;margin-bottom:8px;position:relative;">
+        <button onclick="deleteLog(${i})" style="position:absolute;top:10px;right:10px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;">×</button>
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold);margin-bottom:8px;">${p.title}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+          <div style="text-align:center;background:var(--bg);padding:8px;border-radius:2px;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);">PRE-SCORE</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--accent);">${p.prescore}</div>
+          </div>
+          <div style="text-align:center;background:var(--bg);padding:8px;border-radius:2px;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);">VIEWS</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text);">${p.views}</div>
+          </div>
+          <div style="text-align:center;background:var(--bg);padding:8px;border-radius:2px;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);">SKIP %</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:${skipColor};">${p.skip}%</div>
+          </div>
+          <div style="text-align:center;background:var(--bg);padding:8px;border-radius:2px;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);">WATCH</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text);">${p.watch}s</div>
+          </div>
+          <div style="text-align:center;background:var(--bg);padding:8px;border-radius:2px;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);">SHARES</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text);">${p.shares}</div>
+          </div>
+          <div style="text-align:center;background:var(--bg);padding:8px;border-radius:2px;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);">SAVES</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text);">${p.saves}</div>
+          </div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);margin-top:8px;">${p.format} · ${p.date}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function deleteLog(i) {
+    postLog.splice(i, 1);
+    renderLog();
+    saveToDrive();
+  }
+
+  // Init log on load
+  renderLog();
+</script>
+</body>
+</html>
